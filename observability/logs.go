@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -123,12 +124,16 @@ func setupLogging(ctx context.Context, res *sdkresource.Resource) (*sdklog.Logge
 	if OTLPLogsEndpoint() == "" {
 		return nil, nil
 	}
-	exporter, err := otlploggrpc.New(ctx)
+	exporter, err := otlploggrpc.New(ctx,
+		otlploggrpc.WithTimeout(2*time.Second),
+	)
 	if err != nil {
 		return nil, err
 	}
 	opts := []sdklog.LoggerProviderOption{
-		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter,
+			sdklog.WithExportTimeout(2*time.Second),
+		)),
 	}
 	if res != nil {
 		opts = append(opts, sdklog.WithResource(res))
